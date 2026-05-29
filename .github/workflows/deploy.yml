@@ -2,25 +2,22 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main]   # triggers on every push to main
+    branches: [main]
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
-      # 1. Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Log in to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # 3. Build and push backend image
       - name: Build & push backend
         uses: docker/build-push-action@v5
         with:
@@ -28,7 +25,6 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/backend:latest
 
-      # 4. Build and push frontend image
       - name: Build & push frontend
         uses: docker/build-push-action@v5
         with:
@@ -36,30 +32,12 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/frontend:latest
 
-      # 5. Install kubectl
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-
-      # 6. Configure kubeconfig (from GitHub secret)
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
-
-      # 7. Rolling update — update image, k8s handles zero-downtime swap
       - name: Deploy to Kubernetes (rolling update)
         run: |
-          # Force k8s to pull the new :latest image by updating the deployment
-          kubectl set image deployment/backend \
-            backend=${{ secrets.DOCKER_USERNAME }}/backend:latest
-
-          kubectl set image deployment/frontend \
-            frontend=${{ secrets.DOCKER_USERNAME }}/frontend:latest
-
-          # Wait until rollout finishes (proves zero-downtime in demo)
+          kubectl set image deployment/backend backend=${{ secrets.DOCKER_USERNAME }}/backend:latest
+          kubectl set image deployment/frontend frontend=${{ secrets.DOCKER_USERNAME }}/frontend:latest
           kubectl rollout status deployment/backend --timeout=120s
           kubectl rollout status deployment/frontend --timeout=120s
 
-      # 8. Print pod status so you can see it in the Actions log
       - name: Show pod status
         run: kubectl get pods
