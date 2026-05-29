@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: YOUR_DOCKERHUB_USERNAME/backend:latest
+        image: dragonfly929/backend:latest
         imagePullPolicy: Always   # always pull fresh image — needed for CI/CD
         ports:
         - containerPort: 3000
@@ -99,7 +99,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: YOUR_DOCKERHUB_USERNAME/frontend:latest
+        image: dragonfly929/frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
