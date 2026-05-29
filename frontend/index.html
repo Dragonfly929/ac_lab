@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cloud App - Login</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 40px;
+      width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; color: #f1f5f9; }
+    .subtitle { color: #94a3b8; font-size: 0.9rem; margin-bottom: 28px; }
+    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px; }
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 1rem;
+      margin-bottom: 18px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: #6366f1; }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #4f46e5; }
+    .message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .message.success { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+    .message.error   { background: #450a0a; color: #fca5a5; border: 1px solid #dc2626; }
+    .users-panel {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #334155;
+      display: none;
+    }
+    .users-panel h3 { font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px; }
+    .user-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: #0f172a;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    .version-badge {
+      display: inline-block;
+      background: #1e3a5f;
+      color: #93c5fd;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="version-badge" id="versionBadge">connecting...</div>
+    <h1>☁️ Cloud App</h1>
+    <p class="subtitle">Kubernetes + CI/CD Demo</p>
+
+    <label for="username">Username</label>
+    <input id="username" type="text" placeholder="admin" />
+
+    <label for="password">Password</label>
+    <input id="password" type="password" placeholder="••••••••" />
+
+    <button onclick="login()">Sign In</button>
+
+    <div class="message" id="message"></div>
+
+    <div class="users-panel" id="usersPanel">
+      <h3>👥 Users in database:</h3>
+      <div id="usersList"></div>
+    </div>
+  </div>
+
+  <script>
+    // Backend URL — reads from env or defaults to localhost for local dev
+    const BACKEND = window.BACKEND_URL || 'http://localhost:3000';
+
+    // Fetch version/health on load to prove backend is connected
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${BACKEND}/health`);
+        const data = await res.json();
+        document.getElementById('versionBadge').textContent = `backend v${data.version} ✓`;
+      } catch {
+        document.getElementById('versionBadge').textContent = 'backend unreachable ✗';
+        document.getElementById('versionBadge').style.background = '#450a0a';
+        document.getElementById('versionBadge').style.color = '#fca5a5';
+      }
+    }
+
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const msgEl = document.getElementById('message');
+
+      try {
+        const res = await fetch(`${BACKEND}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+
+        msgEl.style.display = 'block';
+        if (data.success) {
+          msgEl.className = 'message success';
+          msgEl.textContent = '✓ ' + data.message;
+          loadUsers(); // show DB contents on success
+        } else {
+          msgEl.className = 'message error';
+          msgEl.textContent = '✗ ' + data.message;
+        }
+      } catch (e) {
+        msgEl.style.display = 'block';
+        msgEl.className = 'message error';
+        msgEl.textContent = '✗ Could not reach backend';
+      }
+    }
+
+    async function loadUsers() {
+      const res = await fetch(`${BACKEND}/api/users`);
+      const users = await res.json();
+      const panel = document.getElementById('usersPanel');
+      const list  = document.getElementById('usersList');
+      panel.style.display = 'block';
+      list.innerHTML = users.map(u =>
+        `<div class="user-row"><span>${u.username}</span><span style="color:#64748b">id: ${u.id}</span></div>`
+      ).join('');
+    }
+
+    checkHealth();
+  </script>
+</body>
+</html>
