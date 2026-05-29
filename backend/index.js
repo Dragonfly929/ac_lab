@@ -22,7 +22,7 @@ db.exec(`
 
 // Health check endpoint (used by Kubernetes liveness probe)
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', version: process.env.APP_VERSION || '1.0' });
+  res.json({ status: 'ok', version: process.env.APP_VERSION || '2.0' });
 });
 
 // Login endpoint
